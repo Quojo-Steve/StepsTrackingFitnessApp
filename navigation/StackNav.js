@@ -1,6 +1,5 @@
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import FirstScreen from "../screens/FirstScreen";
-import MainPage from "../screens/MainPage";
 import Test from "../screens/Test";
 
 const Stack = createNativeStackNavigator();
@@ -19,14 +18,7 @@ export default function StackNav() {
           headerLeft: () => null,
         }}
       />
-      <Stack.Screen
-        name="mainPage"
-        component={MainPage}
-        options={{
-          gestureEnabled: false,
-          headerLeft: () => null,
-        }}
-      />
+
       <Stack.Screen
         name="test"
         component={Test}

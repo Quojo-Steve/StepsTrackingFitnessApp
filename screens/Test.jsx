@@ -1,16 +1,87 @@
-import { StyleSheet, Text, View, Image, StatusBar } from "react-native";
-import React from "react";
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Image,
+  StatusBar,
+  Dimensions,
+} from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
-// import { BarChart } from "react-native-gifted-charts";
+import { BarChart } from "react-native-chart-kit";
+import { Pedometer } from "expo-sensors";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const Test = () => {
-  const barData = [
-    { value: 230, label: "Jan", frontColor: "#4ABFF4" },
-    { value: 180, label: "Feb", frontColor: "#79C3DB" },
-    { value: 195, label: "Mar", frontColor: "#28B2B3" },
-    { value: 250, label: "Apr", frontColor: "#4ADDBA" },
-    { value: 320, label: "May", frontColor: "#91E3E3" },
-  ];
+  const [stepsData, setStepsData] = useState([]);
+  const [isPedometerAvailable, setIsPedometerAvailable] = useState("checking");
+  const [todaySteps, setTodaySteps] = useState(0);
+  const [todayDistance, setTodayDistance] = useState(0); // Distance in km
+
+  useEffect(() => {
+    subscribe();
+  }, []);
+
+  const subscribe = async () => {
+    const available = await Pedometer.isAvailableAsync();
+    setIsPedometerAvailable(available ? "available" : "not available");
+
+    const today = new Date();
+    const start = new Date(today);
+    start.setHours(0, 0, 0, 0); // Start of the day
+    const end = new Date(today);
+    end.setHours(23, 59, 59, 999); // End of the day
+
+    // Get steps for today
+    const stepCountToday = await Pedometer.getStepCountAsync(start, end);
+    setTodaySteps(stepCountToday.steps);
+
+    // Estimate distance based on average stride length (0.762 meters for average adult)
+    const strideLengthMeters = 0.762; // Average stride length
+    const distanceTodayKm = (stepCountToday.steps * strideLengthMeters) / 1000;
+    setTodayDistance(distanceTodayKm.toFixed(2)); // Keep 2 decimal places
+
+    const last7DaysData = [];
+
+    // Loop over the last 7 days and get the steps count for each day
+    for (let i = 6; i >= 0; i--) {
+      const start = new Date(today);
+      start.setDate(today.getDate() - i);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(today);
+      end.setDate(today.getDate() - i);
+      end.setHours(23, 59, 59, 999);
+
+      const stepCount = await Pedometer.getStepCountAsync(start, end);
+      last7DaysData.push({
+        day: start.toLocaleDateString("en-US", { weekday: "short" }), // Get day name
+        steps: stepCount.steps,
+      });
+    }
+
+    // Update state with step data
+    setStepsData(last7DaysData);
+  };
+
+  const barData = {
+    labels: stepsData.map((data) => data.day), // Display the day names
+    datasets: [
+      {
+        data: stepsData.map((data) => data.steps),
+        colors: [
+          () => "#4ABFF4", // Color for bar 1
+          () => "#36A2EB", // Color for bar 2
+          () => "#FFCE56", // Color for bar 3
+          () => "#4BC0C0", // Color for bar 4
+          () => "#9966FF", // Color for bar 5
+          () => "#FF9F40", // Color for bar 6
+          () => "#FF6384", // Color for bar 7
+        ],
+      },
+    ],
+  };
+
   return (
     <View className="flex items-center justify-center mt-4 p-2">
       <StatusBar barStyle="dark-content" />
@@ -34,27 +105,52 @@ const Test = () => {
         My Activity
       </Text>
       <Text className="text-left w-full font-light text-base mt-4 pl-2">
-        Total Steps
+        Total Steps Today
       </Text>
       <Text className="text-left w-full font-bold -mt-1 text-3xl pl-2">
-        12,212
+        {todaySteps}
       </Text>
 
-      {/* <View>
-        <BarChart
-          showFractionalValue
-          showYAxisIndices
-          noOfSections={4}
-          maxValue={400}
-          data={barData}
-          isAnimated
-        />
-      </View> */}
+      <Text className="text-left w-full font-light text-base mt-4 pl-2">
+        Total Steps (Last 7 Days)
+      </Text>
+
+      <BarChart
+        data={barData}
+        width={Dimensions.get("window").width - 20} // Width of the chart
+        height={220}
+        yAxisLabel={""}
+        chartConfig={{
+          backgroundGradientFrom: "#4ABFF4", // Remove gradient background
+          backgroundGradientTo: "#4ADDBA", // Remove gradient background
+          decimalPlaces: 0, // Show whole numbers only
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`, // Bar colors will be set dynamically
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          style: {
+            borderRadius: 16,
+          },
+          propsForDots: {
+            r: "6",
+            strokeWidth: "2",
+            stroke: "#4ABFF4",
+          },
+        }}
+        style={{
+          marginVertical: 8,
+          borderRadius: 16,
+          padding: 2,
+        }}
+        flatColor // Ensures the bars are colored without any gradient
+      />
 
       <View>
-        <View>
-          <Text>Steps</Text>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <MaterialCommunityIcons name="run-fast" size={24} color="black" />
+          <Text style={{ fontSize: 18, marginLeft: 5 }}>Distance Today</Text>
         </View>
+        <Text style={{ fontSize: 24, fontWeight: "bold" }}>
+          {todayDistance} km
+        </Text>
       </View>
     </View>
   );
