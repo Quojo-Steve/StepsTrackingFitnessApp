@@ -6,6 +6,7 @@ import {
   Image,
   StatusBar,
   Dimensions,
+  SafeAreaView,
 } from "react-native";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import { BarChart } from "react-native-chart-kit";
@@ -83,7 +84,7 @@ const Test = () => {
   };
 
   return (
-    <View className="flex items-center justify-center mt-4 p-2">
+    <SafeAreaView className="flex items-center justify-center mt-4 p-2">
       <StatusBar barStyle="dark-content" />
       <View className="flex items-center flex-row w-full justify-between">
         <View className="flex flex-row p-2 items-center">
@@ -152,7 +153,7 @@ const Test = () => {
           {todayDistance} km
         </Text>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
